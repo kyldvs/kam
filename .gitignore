@@ -1,0 +1,6 @@
+.metadata/
+Matrix/bin/
+Matrix/.settings/
+
+Matrix/.classpath
+Matrix/.project
