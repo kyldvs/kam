@@ -10,6 +10,26 @@ public class Matrix {
 
 	public static int DECIMALS = 2;
 	
+	public static Matrix zero(int r, int c) {
+		return new Matrix(new double[r][c], true);
+	}
+	
+	public static Matrix one(int r, int c) {
+		double[][] arr = new double[r][c];
+		for (int i = 0; i < r; i++) {
+			Arrays.fill(arr[i], 1.0);
+		}
+		return new Matrix(arr, true);
+	}
+	
+	public static Matrix identity(int n) {
+		double[][] arr = new double[n][n];
+		for (int i = 0; i < n; i++) {
+			arr[i][i] = 1.0;
+		}
+		return new Matrix(arr, true);
+	}
+	
 	public static Matrix power(Matrix m, int pow) {
 		if (m.cols() != m.rows()) {
 			throw new InvalidDimensionsException();
@@ -34,11 +54,7 @@ public class Matrix {
 		
 		Matrix ret;
 		if (pow == 0) {
-			double[][] arr = new double[m.rows()][m.cols()];
-			for (int i = 0; i < arr.length; i++) {
-				Arrays.fill(arr[i], 1D);
-			}
-			ret = new Matrix(arr);
+			ret = one(m.rows(), m.cols());
 		} else if (pow == 1) {
 			ret = m;
 		} else if (pow == 2) {
@@ -61,21 +77,25 @@ public class Matrix {
 		return ret;
 	}
 
-	protected double[][] m;
+	/*
+	 * Matrix implementation below this.
+	 */
+	
+	protected double[][] arr;
 
 	public Matrix() {
-		m = new double[0][0];
+		arr = new double[0][0];
 	}
 	
-	public Matrix(double[][] m) {
-		this(m, false);
+	public Matrix(double[][] arr) {
+		this(arr, false);
 	}
 	
-	private Matrix(double[][] m, boolean fast) {
+	private Matrix(double[][] arr, boolean fast) {
 		if (fast) {
-			this.m = m;
+			this.arr = arr;
 		} else {
-			this.m = copy(m);
+			this.arr = copy(arr);
 		}
 	}
 	
@@ -83,15 +103,34 @@ public class Matrix {
 		if (r < 0 || r >= rows() || c < 0 || c >= cols()) {
 			throw new IndexOutOfBoundsException();
 		}
-		return m[r][c];
+		return arr[r][c];
+	}
+	
+	private final double fastGet(int r, int c) {
+		return arr[r][c];
 	}
 	
 	public final int rows() {
-		return m.length;
+		return arr.length;
 	}
 	
 	public final int cols() {
-		return m[0].length;
+		return arr[0].length;
+	}
+	
+	public Matrix add(Matrix m) {
+		if (cols() != m.cols() || rows() != m.rows()) {
+			throw new InvalidDimensionsException();
+		}
+		
+		double[][] result = new double[rows()][cols()];
+		for (int r = 0; r < rows(); r++) {
+			for (int c = 0; c < cols(); c++) {
+				result[r][c] = fastGet(r, c) + m.fastGet(r, c);
+			}
+		}
+		
+		return new Matrix(result, true);
 	}
 	
 	public Matrix multiply(Matrix m) {
@@ -103,7 +142,7 @@ public class Matrix {
 		for (int r = 0; r < rows(); r++) {
 			for (int c = 0; c < m.cols(); c++) {
 				for (int i = 0; i < cols(); i++) {
-					result[r][c] += get(r, i) * m.get(i, c);
+					result[r][c] += fastGet(r, i) * m.fastGet(i, c);
 				}
 			}
 		}
@@ -114,14 +153,14 @@ public class Matrix {
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof Matrix) {
-			return Arrays.deepEquals(m, ((Matrix) o).m);
+			return Arrays.deepEquals(arr, ((Matrix) o).arr);
 		}
 		return false;
 	}
 	
 	@Override
 	public int hashCode() {
-		return Arrays.deepHashCode(m);
+		return Arrays.deepHashCode(arr);
 	}
 	
 	@Override
@@ -130,7 +169,7 @@ public class Matrix {
 		int[] len = new int[cols()];
 		for (int r = 0; r < rows(); r++) {
 			for (int c = 0; c < cols(); c++) {
-				strs[r][c] = String.format("%." + DECIMALS + "f", m[r][c]);
+				strs[r][c] = String.format("%." + DECIMALS + "f", fastGet(r, c));
 				len[c] = Math.max(len[c], strs[r][c].length());
 			}
 		}
@@ -151,6 +190,10 @@ public class Matrix {
 		}
 		return sb.toString();
 	}
+	
+	/*
+	 * Simple main method
+	 */
 	
 	public static void main(String[] args) {
 		Matrix.DECIMALS = 1;
