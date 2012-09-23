@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.base.Function;
 import com.kyldvs.kam.matrix.misc.InvalidDimensionsException;
 
 /**
@@ -14,6 +15,31 @@ import com.kyldvs.kam.matrix.misc.InvalidDimensionsException;
 public class Matrix {
 
 	private static final double EPS = 1e-11;
+
+	/**
+	 * A function to normalize everything that should be treated as 0
+	 */
+	public static final Function<Double, Double> ZERO = new Function<Double, Double>() {
+		@Override
+		public Double apply(Double obj) {
+			return Math.abs(obj) < EPS ? 0 : obj;
+		}
+	};
+
+	/**
+	 * @param m
+	 * @param f
+	 * @return applies f to each entry of m and returns the resulting matrix
+	 */
+	public static Matrix apply(Matrix m, Function<Double, Double> f) {
+		double[][] arr = new double[m.rows()][m.cols()];
+		for (int row = 0; row < m.rows(); row++) {
+			for (int col = 0; col < m.cols(); col++) {
+				arr[row][col] = f.apply(m.fastGet(row, col));
+			}
+		}
+		return new Matrix(arr, true);
+	}
 	
 	public static Matrix create(int r, int c, double d) {
 		double[][] arr = new double[r][c];
@@ -62,8 +88,8 @@ public class Matrix {
 
 	private static Matrix power(Matrix m, int pow, int at,
 			Map<Integer, Matrix> map) {
-		if (map.containsKey(pow)) {
-			return map.get(pow);
+		if (map.containsKey(at * pow)) {
+			return map.get(at * pow);
 		}
 
 		Matrix ret;
@@ -82,6 +108,31 @@ public class Matrix {
 
 		map.put(at * pow, ret);
 		return ret;
+	}
+
+	public static double determinant(Matrix m) {
+		if (m.rows() != m.cols()) {
+			throw new InvalidDimensionsException();
+		}
+
+		double[][] identity = identity(m.rows()).arr;
+		double[][] arr = copy(m.arr);
+		double[][] upperTriangular = upperTriangular2(arr, identity);
+
+		int swaps = 0;
+		double prod = 1;
+		for (int i = 0; i < upperTriangular.length; i++) {
+			if (Math.abs(identity[i][i]) < EPS) {
+				swaps++;
+			}
+			prod *= upperTriangular[i][i];
+		}
+
+		if (swaps % 2 == 1) {
+			prod = -prod;
+		}
+
+		return prod;
 	}
 
 	public static Matrix inverse(Matrix m) {
@@ -175,7 +226,6 @@ public class Matrix {
 
 			row++;
 		}
-
 		return arr;
 	}
 
@@ -360,11 +410,12 @@ public class Matrix {
 	}
 
 	private Matrix transpose = null;
+
 	public Matrix transpose() {
 		if (transpose != null) {
 			return transpose;
 		}
-		
+
 		double[][] result = new double[cols()][rows()];
 		for (int row = 0; row < rows(); row++) {
 			for (int col = 0; col < cols(); col++) {
@@ -377,6 +428,7 @@ public class Matrix {
 	}
 
 	private Boolean symmetric = null;
+
 	public boolean isSymmetric() {
 		if (symmetric != null) {
 			return symmetric;
@@ -384,13 +436,14 @@ public class Matrix {
 		symmetric = this.equals(transpose());
 		return symmetric;
 	}
-	
+
 	private Integer rank = null;
+
 	public int rank() {
 		if (rank != null) {
 			return rank;
 		}
-		
+
 		Matrix m = upperTriangular(this);
 		int pivots = 0;
 		for (int row = 0; row < m.rows(); row++) {
@@ -401,15 +454,26 @@ public class Matrix {
 				}
 			}
 		}
-		
+
 		rank = pivots;
 		return rank;
 	}
-	
+
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof Matrix) {
-			return Arrays.deepEquals(arr, ((Matrix) o).arr);
+			double[][] tht = ((Matrix) o).arr;
+			if (arr.length != tht.length || arr[0].length != tht[0].length) {
+				return false;
+			}
+			for (int i = 0; i < arr.length; i++) {
+				for (int j = 0; j < arr[0].length; j++) {
+					if (Math.abs(arr[i][j] - tht[i][j]) > EPS) {
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 		return false;
 	}
@@ -420,7 +484,7 @@ public class Matrix {
 	}
 
 	public static int DECIMALS = 2;
-	
+
 	@Override
 	public String toString() {
 		int decimals = Math.max(0, DECIMALS);
@@ -488,26 +552,19 @@ public class Matrix {
 		System.out.println(b.multiply(bi));
 		System.out.println("\nBInverse.B:");
 		System.out.println(bi.multiply(b));
-		
-		Matrix c = new Matrix(new double[][]{
-				{1, 3, 5 },
-				{3, -5, 7 },
-				{5, 7, 2 }
-		});
-		
+
+		Matrix c = new Matrix(new double[][] { { 1, 3, 5 }, { 3, -5, 7 },
+				{ 5, 7, 2 } });
+
 		System.out.println("\nMatrix C:");
 		System.out.println(c);
 		System.out.println("\nC Transpose:");
 		System.out.println(c.transpose());
 		System.out.println("\nC is symmetric: " + c.isSymmetric());
-		
-		Matrix d = new Matrix(new double[][]{
-				{ 1, 3, 2, -1, 0 },
-				{ 2, 6, 1, 4, 3 },
-				{ -1, -3, -3, 3, 1 },
-				{3, 9, 8, -7, 2 }
-		});
-		
+
+		Matrix d = new Matrix(new double[][] { { 1, 3, 2, -1, 0 },
+				{ 2, 6, 1, 4, 3 }, { -1, -3, -3, 3, 1 }, { 3, 9, 8, -7, 2 } });
+
 		System.out.println("\nMatrix D:");
 		System.out.println(d);
 		System.out.println("\nUpper Triangular D:");
