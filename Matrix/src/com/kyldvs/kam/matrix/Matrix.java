@@ -359,6 +359,20 @@ public class Matrix {
 		return new Matrix(result, true);
 	}
 
+	public Matrix transpose() {
+		double[][] result = new double[cols()][rows()];
+		for (int row = 0; row < rows(); row++) {
+			for (int col = 0; col < cols(); col++) {
+				result[col][row] = fastGet(row, col);
+			}
+		}
+		return new Matrix(result, true);
+	}
+	
+	public boolean isSymmetric() {
+		return this.equals(transpose());
+	}
+	
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof Matrix) {
@@ -397,7 +411,10 @@ public class Matrix {
 					sb.append(", ");
 				}
 			}
-			sb.append("]\n");
+			sb.append("]");
+			if (r + 1 < rows()) {
+				sb.append("\n");
+			}
 		}
 		return sb.toString();
 	}
@@ -411,22 +428,54 @@ public class Matrix {
 
 		Matrix a = new Matrix(new double[][] { { 1, -1, 7, -7 },
 				{ 1, 2, 3, -3 }, { 2, 3, 4, 3 } });
-
+		System.out.println("Matrix A:");
+		System.out.println(a);
+		System.out.println("\nA Transpose:");
+		System.out.println(a.transpose());
+		System.out.println("\nA is Symmetric: " + a.isSymmetric());
+		System.out.println("\nSolution to A:");
 		System.out.println(solve(a));
-
 		Matrix LUD = LUDecomposition(a);
-
+		System.out.println("\nLUDecomposition of A:");
 		System.out.println(LUD);
-
+		System.out.println("\nLUD.A:");
 		System.out.println(LUD.multiply(a));
+		System.out.println("\nUpper Triangular A:");
+		System.out.println(upperTriangular(a));
 
 		Matrix b = new Matrix(new double[][] { { 1, 2 }, { 0, 1 } });
-
+		System.out.println("\nMatrix B:");
+		System.out.println(b);
 		Matrix bi = inverse(b);
-
+		System.out.println("\nB Inverse:");
 		System.out.println(bi);
-
+		System.out.println("\nB.BInverse:");
 		System.out.println(b.multiply(bi));
+		System.out.println("\nBInverse.B:");
 		System.out.println(bi.multiply(b));
+		
+		Matrix c = new Matrix(new double[][]{
+				{1, 3, 5 },
+				{3, -5, 7 },
+				{5, 7, 2 }
+		});
+		
+		System.out.println("\nMatrix C:");
+		System.out.println(c);
+		System.out.println("\nC Transpose:");
+		System.out.println(c.transpose());
+		System.out.println("\nC is symmetric: " + c.isSymmetric());
+		
+		Matrix d = new Matrix(new double[][]{
+				{ 1, 3, 2, -1, 0 },
+				{ 2, 6, 1, 4, 3 },
+				{ -1, -3, -3, 3, 1 },
+				{3, 9, 8, -7, 2 }
+		});
+		
+		System.out.println("\nMatrix D:");
+		System.out.println(d);
+		System.out.println("\nUpper Triangular D:");
+		System.out.println(upperTriangular(d));
 	}
 }
