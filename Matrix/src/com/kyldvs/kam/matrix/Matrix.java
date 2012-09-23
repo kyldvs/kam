@@ -13,8 +13,8 @@ import com.kyldvs.kam.matrix.misc.InvalidDimensionsException;
  */
 public class Matrix {
 
-	public static int DECIMALS = 2;
-
+	private static final double EPS = 1e-11;
+	
 	public static Matrix create(int r, int c, double d) {
 		double[][] arr = new double[r][c];
 		for (int i = 0; i < r; i++) {
@@ -147,7 +147,7 @@ public class Matrix {
 			double pivotValue = Math.abs(arr[row][col]);
 			for (int i = row; i < rows; i++) {
 				double value = Math.abs(arr[i][col]);
-				if (value < 1e-11) {
+				if (value < EPS) {
 					arr[i][col] = 0;
 				} else if (value > pivotValue) {
 					pivot = i;
@@ -155,7 +155,7 @@ public class Matrix {
 				}
 			}
 
-			if (pivotValue < 1e-11) {
+			if (pivotValue < EPS) {
 				continue;
 			}
 
@@ -192,7 +192,7 @@ public class Matrix {
 		for (int row = 0; row < rows; row++) {
 			int nonZero = -1;
 			for (int col = 0; col < cols; col++) {
-				if (Math.abs(arr[row][col]) > 1e-11) {
+				if (Math.abs(arr[row][col]) > EPS) {
 					nonZero = col;
 					break;
 				}
@@ -224,7 +224,7 @@ public class Matrix {
 		for (int row = rows - 1; row >= 0; row--) {
 			int nonZero = -1;
 			for (int col = 0; col < cols; col++) {
-				if (Math.abs(arr[row][col]) > 1e-11) {
+				if (Math.abs(arr[row][col]) > EPS) {
 					nonZero = col;
 					break;
 				}
@@ -359,18 +359,51 @@ public class Matrix {
 		return new Matrix(result, true);
 	}
 
+	private Matrix transpose = null;
 	public Matrix transpose() {
+		if (transpose != null) {
+			return transpose;
+		}
+		
 		double[][] result = new double[cols()][rows()];
 		for (int row = 0; row < rows(); row++) {
 			for (int col = 0; col < cols(); col++) {
 				result[col][row] = fastGet(row, col);
 			}
 		}
-		return new Matrix(result, true);
+
+		transpose = new Matrix(result, true);
+		return transpose;
+	}
+
+	private Boolean symmetric = null;
+	public boolean isSymmetric() {
+		if (symmetric != null) {
+			return symmetric;
+		}
+		symmetric = this.equals(transpose());
+		return symmetric;
 	}
 	
-	public boolean isSymmetric() {
-		return this.equals(transpose());
+	private Integer rank = null;
+	public int rank() {
+		if (rank != null) {
+			return rank;
+		}
+		
+		Matrix m = upperTriangular(this);
+		int pivots = 0;
+		for (int row = 0; row < m.rows(); row++) {
+			for (int col = 0; col < m.cols(); col++) {
+				if (Math.abs(m.fastGet(row, col)) > EPS) {
+					pivots++;
+					break;
+				}
+			}
+		}
+		
+		rank = pivots;
+		return rank;
 	}
 	
 	@Override
@@ -386,6 +419,8 @@ public class Matrix {
 		return Arrays.deepHashCode(arr);
 	}
 
+	public static int DECIMALS = 2;
+	
 	@Override
 	public String toString() {
 		int decimals = Math.max(0, DECIMALS);
@@ -477,5 +512,6 @@ public class Matrix {
 		System.out.println(d);
 		System.out.println("\nUpper Triangular D:");
 		System.out.println(upperTriangular(d));
+		System.out.println("\nD Rank: " + d.rank());
 	}
 }
