@@ -14,7 +14,7 @@ import com.kyldvs.kam.matrix.misc.InvalidDimensionsException;
 public class Matrix {
 
 	public static int DECIMALS = 2;
-
+	
 	public static Matrix create(int r, int c, double d) {
 		double[][] arr = new double[r][c];
 		for (int i = 0; i < r; i++) {
@@ -91,7 +91,7 @@ public class Matrix {
 		
 		double[][] arr = copy(m.arr);
 		double[][] upperTriangular = upperTriangular(arr);
-		double[][] specialUpperTriangular = specialFirst(upperTriangular);
+		double[][] specialUpperTriangular = special(upperTriangular);
 		double[][] backSolve = backSolve(specialUpperTriangular);
 		
 		return new Matrix(backSolve, true);
@@ -104,7 +104,7 @@ public class Matrix {
 	
 	public static Matrix specialUpperTriangular(Matrix m) {
 		double[][] arr = copy(m.arr);
-		return new Matrix(specialDiagnol(upperTriangular(arr)), true);
+		return new Matrix(special(upperTriangular(arr)), true);
 	}
 	
 	private static double[][] upperTriangular(double[][] arr) {
@@ -148,22 +148,7 @@ public class Matrix {
 		return arr;
 	}
 	
-	private static double[][] specialDiagnol(double[][] m) {
-		int rows = m.length;
-		int cols = m[0].length;
-		int min = Math.min(rows, cols);
-		for (int i = 0; i < min; i++) {
-			if (Math.abs(m[i][i]) > 1e-11) {
-				double coef = m[i][i];
-				for (int j = 0; j < cols; j++) {
-					m[i][j] /= coef;
-				}
-			}
-		}
-		return m;
-	}
-	
-	private static double[][] specialFirst(double[][] m) {
+	private static double[][] special(double[][] m) {
 		int rows = m.length;
 		int cols = m[0].length;
 		for (int row = 0; row < rows; row++) {
@@ -235,7 +220,7 @@ public class Matrix {
 	 * Matrix implementation below this.
 	 */
 
-	protected double[][] arr;
+	private double[][] arr;
 
 	public Matrix() {
 		arr = new double[0][0];
@@ -326,12 +311,13 @@ public class Matrix {
 
 	@Override
 	public String toString() {
+		int decimals = Math.max(0, DECIMALS);
 		String[][] strs = new String[rows()][cols()];
 		int[] len = new int[cols()];
 		for (int r = 0; r < rows(); r++) {
 			for (int c = 0; c < cols(); c++) {
 				strs[r][c] = String
-						.format("%." + DECIMALS + "f", fastGet(r, c));
+						.format("%." + decimals + "f", fastGet(r, c));
 				len[c] = Math.max(len[c], strs[r][c].length());
 			}
 		}
