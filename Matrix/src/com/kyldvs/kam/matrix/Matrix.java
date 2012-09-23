@@ -84,11 +84,26 @@ public class Matrix {
 		return ret;
 	}
 
-	public static Matrix solve(Matrix m) {
-		if (m.rows() > m.cols()) {
+	public static Matrix inverse(Matrix m) {
+		if (m.rows() != m.cols()) {
 			throw new InvalidDimensionsException();
 		}
 		
+		Matrix l = LUDecomposition(m);
+		Matrix identity = identity(m.rows());
+		return identity.multiply(l);
+	}
+	
+	public static Matrix LUDecomposition(Matrix m) {
+		double[][] decomp = identity(m.rows()).arr;
+		double[][] arr = copy(m.arr);
+		double[][] upperTriangular = upperTriangular2(arr, decomp);
+		double[][] specialUpperTriangular = special2(upperTriangular, decomp);
+		backSolve2(specialUpperTriangular, decomp);
+		return new Matrix(decomp);
+	}
+	
+	public static Matrix solve(Matrix m) {
 		double[][] arr = copy(m.arr);
 		double[][] upperTriangular = upperTriangular(arr);
 		double[][] specialUpperTriangular = special(upperTriangular);
@@ -108,6 +123,12 @@ public class Matrix {
 	}
 	
 	private static double[][] upperTriangular(double[][] arr) {
+		return upperTriangular2(arr, null);
+	}
+	
+	private static double[][] upperTriangular2(double[][] arr, double[][] copy) {
+		boolean validCopy = copy != null && arr.length == copy.length;
+		
 		int rows = arr.length;
 		int cols = arr[0].length;
 		
@@ -134,11 +155,16 @@ public class Matrix {
 			}
 			
 			swapRows(row, pivot, arr);
+			if (validCopy) {
+				swapRows(row, pivot, copy);
+			}
 			
 			for (int j = row + 1; j < rows; j++) {
 				double coeff = -arr[j][col] / arr[row][col];
-				for (int k = col; k < cols; k++) {
-					arr[j][k] += coeff * arr[row][k];
+				
+				addRows(row, coeff, j, arr);
+				if (validCopy) {
+					addRows(row, coeff, j, copy);
 				}
 			}
 			
@@ -148,13 +174,20 @@ public class Matrix {
 		return arr;
 	}
 	
-	private static double[][] special(double[][] m) {
-		int rows = m.length;
-		int cols = m[0].length;
+	private static double[][] special(double[][] arr) {
+		return special2(arr, null);
+	}
+	
+	private static double[][] special2(double[][] arr, double[][] copy) {
+		boolean validCopy = copy != null && arr.length == copy.length;
+		
+		int rows = arr.length;
+		int cols = arr[0].length;
+		
 		for (int row = 0; row < rows; row++) {
 			int nonZero = -1;
 			for (int col = 0; col < cols; col++) {
-				if (Math.abs(m[row][col]) > 1e-11) {
+				if (Math.abs(arr[row][col]) > 1e-11) {
 					nonZero = col;
 					break;
 				}
@@ -164,15 +197,22 @@ public class Matrix {
 				continue;
 			}
 
-			double coef = m[row][nonZero];
-			for (int col = nonZero; col < cols; col++) {
-				m[row][col] /= coef;
+			double coeff = 1.0 / arr[row][nonZero];
+			multiplyRow(row, coeff, arr);
+			if (validCopy) {
+				multiplyRow(row, coeff, copy);
 			}
 		}
-		return m;
+		return arr;
 	}
 	
 	private static double[][] backSolve(double[][] arr) {
+		return backSolve2(arr, null);
+	}
+	
+	private static double[][] backSolve2(double[][] arr, double[][] copy) {
+		boolean validCopy = copy != null && arr.length == copy.length;
+		
 		int rows = arr.length;
 		int cols = arr[0].length;
 
@@ -190,9 +230,10 @@ public class Matrix {
 			}
 			
 			for (int r2 = row - 1; r2 >= 0; r2--) {
-				double coef = -arr[r2][nonZero] / arr[row][nonZero];
-				for (int col = nonZero; col < cols; col++) {
-					arr[r2][col] += coef * arr[row][col];
+				double coeff = -arr[r2][nonZero] / arr[row][nonZero];
+				addRows(row, coeff, r2, arr);
+				if (validCopy) {
+					addRows(row, coeff, r2, copy);
 				}
 			}
 		}
@@ -205,6 +246,22 @@ public class Matrix {
 			double[] tmp = arr[r1];
 			arr[r1] = arr[r2];
 			arr[r2] = tmp;
+		}
+	}
+	
+	private static void addRows(int row, double coeff, int to, double[][]...arrs) {
+		for (double[][] arr : arrs) {
+			for (int col = 0; col < arr[row].length; col++) {
+				arr[to][col] += coeff * arr[row][col];
+			}
+		}
+	}
+	
+	private static void multiplyRow(int row, double coeff, double[][]...arrs) {
+		for (double[][] arr : arrs) {
+			for (int col = 0; col < arr[row].length; col++) {
+				arr[row][col] *= coeff;
+			}
 		}
 	}
 
@@ -347,10 +404,30 @@ public class Matrix {
 		Matrix.DECIMALS = 2;
 
 		Matrix a = new Matrix(new double[][] { 
-				{ 1, -1, 7 }, 
-				{ 1, 2, 3 } 
+				{ 1, -1, 7, -7 }, 
+				{ 1, 2, 3, -3 }, 
+				{ 2, 3, 4, 3 }
 		});
+		
+		System.out.println(solve(a));
+		
+		Matrix LUD = LUDecomposition(a);
+		
+		System.out.println(LUD);
+		
+		System.out.println(LUD.multiply(a));
 
-		System.out.println(Matrix.solve(a));
+		Matrix b = new Matrix(new double[][] { 
+				{ 1, -1, 7 }, 
+				{ 1, 2, 3 }, 
+				{ 2, 3, 4 }
+		});
+		
+		Matrix bi = inverse(b);
+		
+		System.out.println(bi);
+		
+		System.out.println(b.multiply(bi));
+		System.out.println(bi.multiply(b));
 	}
 }
